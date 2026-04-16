@@ -77,6 +77,23 @@ export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps
     }
   };
 
+  const handleDeleteCategory = async () => {
+    if (!formData.Select_category) return;
+    const cat = categories.find(c => c.title === formData.Select_category);
+    if (!cat || !cat.id) return;
+    
+    if (!window.confirm("Are you sure you want to delete this category?")) return;
+    
+    try {
+      await fetchApi(`/api/admin/videos/categories/${cat.id}/`, { method: 'DELETE' });
+      setFormData(prev => ({ ...prev, Select_category: "" }));
+      loadCategories();
+    } catch (e) {
+      console.error("Failed to delete category", e);
+      alert(`Failed to delete category: ${e}`);
+    }
+  };
+
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -96,8 +113,6 @@ export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps
 
     setIsSubmitting(true);
     try {
-      // Use standard fetch specifically for multipart/form-data because fetchApi uses application/json 
-      // AND we need to attach the token if required.
       const Form = new FormData();
       Form.append("Select_category", formData.Select_category);
       Form.append("Title", formData.Title);
@@ -106,26 +121,16 @@ export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps
       Form.append("Steps", formData.Steps);
       Form.append("Time", formData.Time);
       Form.append("Points", formData.Points || "0");
-      Form.append("is_pulished", "true"); // Typo from user docs included!
+      Form.append("is_pulished", "true"); 
       
       if (videoFile) {
         Form.append("video", videoFile);
       }
 
-      // To send FormData, we bypass json conversion but append the Auth headers
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/admin/videos/', {
+      await fetchApi('/api/admin/videos/', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: Form
+        data: Form
       });
-
-      if (!response.ok) {
-        const errObj = await response.json().catch(() => null);
-        throw new Error(errObj ? JSON.stringify(errObj) : `Server returned ${response.status}`);
-      }
 
       if (onSuccess) onSuccess();
       onClose();
@@ -244,30 +249,51 @@ export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', letterSpacing: '0.5px' }}>
                 Video Category
               </label>
-              <select 
-                name="Select_category"
-                value={formData.Select_category}
-                onChange={handleChange}
-                style={{
-                width: '100%',
-                backgroundColor: 'var(--background)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '14px 16px',
-                color: 'var(--text-primary)',
-                fontSize: '13px',
-                outline: 'none',
-                appearance: 'none',
-                backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 16px top 50%',
-                backgroundSize: '10px auto'
-              }}>
-                <option value="">-- Select Category --</option>
-                {categories.map(cat => (
-                  <option key={cat.id || cat.title} value={cat.title}>{cat.title}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select 
+                  name="Select_category"
+                  value={formData.Select_category}
+                  onChange={handleChange}
+                  style={{
+                  flex: 1,
+                  backgroundColor: 'var(--background)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  appearance: 'none',
+                  backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 16px top 50%',
+                  backgroundSize: '10px auto'
+                }}>
+                  <option value="">-- Select Category --</option>
+                  {categories.map(cat => (
+                    <option key={cat.id || cat.title} value={cat.title}>{cat.title}</option>
+                  ))}
+                </select>
+                <button 
+                  onClick={handleDeleteCategory}
+                  disabled={!formData.Select_category}
+                  title="Delete Selected Category"
+                  style={{
+                    padding: '0 16px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    color: 'var(--danger)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderRadius: '8px',
+                    cursor: formData.Select_category ? 'pointer' : 'not-allowed',
+                    opacity: formData.Select_category ? 1 : 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', letterSpacing: '0.5px' }}>

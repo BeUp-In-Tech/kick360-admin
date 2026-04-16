@@ -17,18 +17,27 @@ export const fetchApi = async (endpoint: string, options: ApiOptions = {}) => {
     }
   }
 
+  const headersList: Record<string, string> = {
+    ...authHeaders,
+    ...(headers as Record<string, string> || {}),
+  };
+
+  if (!(data instanceof FormData)) {
+    headersList['Content-Type'] = 'application/json';
+  }
+
   const config: RequestInit = {
     method: data ? 'POST' : 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders,
-      ...headers,
-    },
+    headers: headersList,
     ...customConfig,
   };
 
   if (data) {
-    config.body = JSON.stringify(data);
+    if (data instanceof FormData) {
+      config.body = data;
+    } else {
+      config.body = JSON.stringify(data);
+    }
   }
 
   try {

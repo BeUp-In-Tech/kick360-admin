@@ -120,17 +120,33 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }
     if (!payload.end_date) delete payload.end_date;
 
     try {
-      if (tournament?.id) {
-        await fetchApi(`/api/admin/tournaments/${tournament.id}/`, {
+      let tournamentId = tournament?.id;
+
+      if (tournamentId) {
+        await fetchApi(`/api/admin/tournaments/${tournamentId}/`, {
           method: 'PUT',
           data: payload
         });
       } else {
-        await fetchApi('/api/admin/tournaments/', {
+        const createRes = await fetchApi('/api/admin/tournaments/', {
           method: 'POST',
           data: payload
         });
+        tournamentId = createRes?.id;
       }
+
+      if (tournamentId) {
+        try {
+          if (formData.is_active) {
+            await fetchApi(`/api/admin/tournaments/${tournamentId}/publish/`, { method: 'PUT', data: {} });
+          } else {
+            await fetchApi(`/api/admin/tournaments/${tournamentId}/pause/`, { method: 'PUT', data: {} });
+          }
+        } catch (e) {
+             console.error("Failed to automatically update tournament status", e);
+        }
+      }
+
       onSuccess();
       onClose();
     } catch (e) {
