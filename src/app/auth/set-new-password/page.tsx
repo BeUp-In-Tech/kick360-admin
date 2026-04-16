@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { fetchApi } from '@/lib/api';
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function SetNewPasswordPage() {
+function SetNewPasswordContent() {
   const searchParams = useSearchParams();
   const defaultToken = searchParams.get('token') || '';
   
@@ -80,5 +81,13 @@ export default function SetNewPasswordPage() {
         </Button>
       </form>
     </>
+  );
+}
+
+export default function SetNewPasswordPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', marginTop: '40px' }}>Loading...</div>}>
+      <SetNewPasswordContent />
+    </Suspense>
   );
 }
