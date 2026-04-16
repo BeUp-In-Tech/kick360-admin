@@ -7,6 +7,7 @@ import { UserTable } from "@/components/users/UserTable";
 
 export default function UsersPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   return (
@@ -27,6 +28,8 @@ export default function UsersPage() {
             <Input 
               type="text" 
               placeholder="Search users, tournaments..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               icon={<Search size={18} />} 
               style={{
                 backgroundColor: 'var(--surface-primary)',
@@ -146,7 +149,7 @@ export default function UsersPage() {
       </div>
 
       {/* Main Content */}
-      <UserTable />
+      <UserTable searchQuery={searchQuery} />
     </div>
   );
 }

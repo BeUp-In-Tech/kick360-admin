@@ -12,9 +12,22 @@ import {
   LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchApi } from "@/lib/api";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await fetchApi("/api/admin/auth/logout/", { method: "POST" });
+    } catch (error) {
+      console.error("Logout API failed:", error);
+    } finally {
+      logout();
+    }
+  };
 
   const navItems = [
     { label: "Overview Analytics", icon: <LayoutDashboard size={20} />, href: "/dashboard" },
@@ -74,22 +87,25 @@ export function Sidebar() {
 
       {/* Footer / Log Out */}
       <div style={{ padding: '24px 16px', borderTop: '1px solid var(--border-color)' }}>
-        <Link
-          href="/auth/login"
+        <button
+          onClick={handleLogout}
           style={{
+            width: '100%',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
             padding: '12px 16px',
             color: 'var(--danger)',
-            textDecoration: 'none',
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
             fontWeight: 500,
             fontSize: '14px',
           }}
         >
           <LogOut size={20} />
           Log Out
-        </Link>
+        </button>
       </div>
     </aside>
   );

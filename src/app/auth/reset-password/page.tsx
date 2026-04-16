@@ -1,59 +1,43 @@
 "use client";
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { Mail, X } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { fetchApi } from '@/lib/api';
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+export default function ResetPasswordPage() {
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-
     setStatus('loading');
     setMessage('');
 
     try {
-      await fetchApi('/api/admin/auth/forgot-password/', {
-        data: { email }
+      await fetchApi('/api/admin/auth/reset-password/', {
+        data: { old_password: oldPassword, new_password: newPassword }
       });
       setStatus('success');
-      setMessage('Password reset link sent to your email.');
+      setMessage('Password successfully reset.');
     } catch (error: any) {
       setStatus('error');
-      setMessage(error.message || 'Failed to send reset link.');
+      setMessage(error.message || 'Failed to reset password.');
     }
   };
 
   return (
     <>
-      <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
-        <Link href="/auth/login" style={{ color: 'var(--text-secondary)' }}>
-          <X size={24} />
-        </Link>
-      </div>
-
       <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '40px', marginBottom: '16px', textAlign: 'center' }}>
-        Forgot Password?
+        Reset Password
       </h1>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '40px', textAlign: 'center', lineHeight: 1.5 }}>
-        Enter your email address and we will send you a link<br/>to reset your password
-      </p>
 
       {status === 'success' && (
         <div style={{ color: 'var(--success)', marginBottom: '16px', fontSize: '14px', textAlign: 'center' }}>
           {message}
-          <div style={{ marginTop: '16px' }}>
-            <Link href="/auth/set-new-password" style={{ color: 'var(--text-primary)', textDecoration: 'underline' }}>
-              Proceed to Enter Token
-            </Link>
-          </div>
         </div>
       )}
 
@@ -65,16 +49,24 @@ export default function ForgotPasswordPage() {
 
       <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <Input 
-          type="email" 
-          placeholder="Enter Your Email" 
-          icon={<Mail size={20} />} 
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          type="password" 
+          placeholder="Old Password" 
+          icon={<Lock size={20} />} 
+          value={oldPassword}
+          onChange={(e) => setOldPassword(e.target.value)}
+          required
+        />
+        <Input 
+          type="password" 
+          placeholder="New Password" 
+          icon={<Lock size={20} />} 
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
           required
         />
 
         <Button type="submit" fullWidth disabled={status === 'loading'}>
-          {status === 'loading' ? 'Sending...' : 'Send Reset Link'}
+          {status === 'loading' ? 'Resetting...' : 'Reset Password'}
         </Button>
       </form>
     </>

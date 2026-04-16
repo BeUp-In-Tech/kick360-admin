@@ -1,15 +1,36 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { X, RefreshCcw, AlertOctagon } from 'lucide-react';
+import { fetchApi } from '@/lib/api';
 
 interface ResetRankingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onReset?: () => void;
 }
 
-export function ResetRankingsModal({ isOpen, onClose }: ResetRankingsModalProps) {
+export function ResetRankingsModal({ isOpen, onClose, onReset }: ResetRankingsModalProps) {
+  const [confirmText, setConfirmText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleReset = async () => {
+    if (confirmText !== 'RESET') return;
+    setIsLoading(true);
+    try {
+      await fetchApi("/api/admin/leaderboard/reset_all/", { method: "PATCH", data: {} });
+      if (onReset) onReset();
+      onClose();
+      setConfirmText("");
+    } catch (error) {
+      console.error("Failed to reset leaderboard:", error);
+      alert('Failed to reset leaderboard');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -95,6 +116,8 @@ export function ResetRankingsModal({ isOpen, onClose }: ResetRankingsModalProps)
           <input 
             type="text" 
             placeholder="RESET" 
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
             style={{
               width: '100%',
               backgroundColor: 'var(--background)',
@@ -119,14 +142,17 @@ export function ResetRankingsModal({ isOpen, onClose }: ResetRankingsModalProps)
           borderTop: '1px solid var(--border-color)',
           borderRadius: '0 0 24px 24px'
         }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+          <button disabled={isLoading} onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
-          <button style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#e11d48', border: 'none', color: '#ffffff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background-color 0.2s' }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#be123c'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#e11d48'}
+          <button 
+            disabled={confirmText !== 'RESET' || isLoading}
+            onClick={handleReset}
+            style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#e11d48', border: 'none', color: '#ffffff', fontSize: '14px', fontWeight: 700, cursor: confirmText === 'RESET' && !isLoading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background-color 0.2s', opacity: confirmText === 'RESET' && !isLoading ? 1 : 0.5 }}
+            onMouseOver={(e) => { if (confirmText === 'RESET' && !isLoading) e.currentTarget.style.backgroundColor = '#be123c' }}
+            onMouseOut={(e) => { if (confirmText === 'RESET' && !isLoading) e.currentTarget.style.backgroundColor = '#e11d48' }}
           >
-            <RefreshCcw size={16} /> Yes, Reset Everything
+            <RefreshCcw size={16} /> {isLoading ? 'Resetting...' : 'Yes, Reset Everything'}
           </button>
         </div>
 

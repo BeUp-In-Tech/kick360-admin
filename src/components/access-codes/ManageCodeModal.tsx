@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Search, Calendar, User, AlertCircle } from 'lucide-react';
+import { fetchApi } from '@/lib/api';
 
 interface ManageCodeModalProps {
   isOpen: boolean;
@@ -11,15 +12,12 @@ interface ManageCodeModalProps {
 
 export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalProps) {
   const [expiryDate, setExpiryDate] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
-    // Basic date parsing to set the input field safely from mock data
-    if (codeData && codeData.expiry !== 'Expired') {
-      // Very simple mock mapping for display purposes
-      if (codeData.expiry === 'Mar 30, 2026') setExpiryDate('2026-03-30');
-      if (codeData.expiry === 'Jun 15, 2026') setExpiryDate('2026-06-15');
-      if (codeData.expiry === 'Dec 31, 2025') setExpiryDate('2025-12-31');
-      if (codeData.expiry === 'Sep 1, 2026') setExpiryDate('2026-09-01');
+    if (codeData && codeData.expires_at) {
+      const dateStr = new Date(codeData.expires_at).toISOString().split('T')[0];
+      setExpiryDate(dateStr);
     } else {
       setExpiryDate('');
     }
@@ -27,9 +25,44 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
 
   if (!isOpen || !codeData) return null;
 
-  const isPending = codeData.status === 'Pending';
-  const isActive = codeData.status === 'Active';
-  const isInactiveOrExpired = codeData.status === 'Inactive' || codeData.expiry === 'Expired';
+  const isActive = codeData.is_active && !codeData.is_consumed;
+  const isConsumed = codeData.is_consumed;
+  const isExpired = new Date(codeData.expires_at) < new Date();
+
+  const handleUpdate = async (updates: any) => {
+    setIsLoading(true);
+    try {
+      await fetchApi(`/api/admin/access-codes/${codeData.id}/`, {
+        method: "PATCH",
+        data: {
+          ...updates
+        }
+      });
+      alert('Success!');
+      onClose(); // ideally trigger parent refresh
+      window.location.reload(); // Quick hack for refresh
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update code');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleActionClick = (actionType: 'activate' | 'deactivate' | 'renew' | 'save') => {
+    let payload: any = {};
+    if (expiryDate) {
+      payload.expires_at = new Date(expiryDate).toISOString();
+    }
+    
+    if (actionType === 'activate' || actionType === 'renew') {
+      payload.is_active = true;
+    } else if (actionType === 'deactivate') {
+      payload.is_active = false;
+    }
+
+    handleUpdate(payload);
+  };
 
   return (
     <div style={{
@@ -100,7 +133,7 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
               border: '1px solid var(--border-color)',
               padding: '24px',
             }}>
-              {isActive || isInactiveOrExpired ? (
+              {(isActive || isConsumed || isExpired) ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: isActive ? '20px' : '0' }}>
                   <div style={{ 
                     width: '48px', height: '48px', borderRadius: '50%', 
@@ -112,12 +145,12 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
                   </div>
                   <div>
                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Current Assignee</div>
-                    <div style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)' }}>{codeData.assignee}</div>
+                    <div style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)' }}>{codeData.user_name || 'Unassigned'}</div>
                   </div>
                 </div>
               ) : null}
 
-              {(isPending || isActive) && (
+              {(!isConsumed) && (
                 <div style={{ position: 'relative' }}>
                   <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
                     <Search size={18} />
@@ -144,7 +177,7 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
           {/* Section 2: Expiration Date */}
           <div>
             <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 16px 0', letterSpacing: '0.5px' }}>
-              {isInactiveOrExpired ? 'Renew Access Period' : 'Expiration Date'}
+              {(isExpired || !codeData.is_active) ? 'Renew Access Period' : 'Expiration Date'}
             </h3>
             
             <div style={{
@@ -153,7 +186,7 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
               border: '1px solid var(--border-color)',
               padding: '24px',
             }}>
-              <div style={{ position: 'relative', marginBottom: isInactiveOrExpired ? '16px' : '0' }}>
+              <div style={{ position: 'relative', marginBottom: isExpired ? '16px' : '0' }}>
                 <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
                   <Calendar size={18} />
                 </div>
@@ -175,7 +208,7 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
                 />
               </div>
 
-              {isInactiveOrExpired && (
+              {isExpired && (
                 <div style={{ 
                   backgroundColor: 'rgba(239, 68, 68, 0.05)', 
                   border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -184,11 +217,12 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  color: 'var(--danger)'
+                  color: 'var(--danger)',
+                  marginTop: '16px'
                 }}>
                   <AlertCircle size={18} />
                   <span style={{ fontSize: '13px' }}>
-                    Currently Unusable: This code reached its limit on Dec 2024.
+                    Currently Unusable: This code reached its limit.
                   </span>
                 </div>
               )}
@@ -205,34 +239,34 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
           gap: '16px',
           borderTop: '1px solid var(--border-color)'
         }}>
-          {isPending && (
+          {!codeData.is_active && !isExpired && (
             <>
-              <button onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={() => handleActionClick('activate')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Activate Code
               </button>
             </>
           )}
 
-          {isActive && (
+          {isActive && !isExpired && (
             <>
-              <button onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={() => handleActionClick('deactivate')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--danger)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Deactivate Code
               </button>
-              <button style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={() => handleActionClick('save')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Save Changes
               </button>
             </>
           )}
 
-          {isInactiveOrExpired && (
+          {(isExpired || (!isActive && isExpired)) && (
             <>
-              <button onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={() => handleActionClick('renew')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Renew & Activate Code
               </button>
             </>

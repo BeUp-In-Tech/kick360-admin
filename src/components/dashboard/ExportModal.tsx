@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, FileText, FileSpreadsheet, FileIcon, Info, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { fetchApi } from '@/lib/api';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -10,7 +11,8 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ isOpen, onClose }: ExportModalProps) {
-  const [format, setFormat] = useState('CSV');
+  const [format, setFormat] = useState('PDF');
+  const [isExporting, setIsExporting] = useState(false);
   const [columns, setColumns] = useState({
     userName: true,
     email: false,
@@ -24,6 +26,41 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
 
   const toggleColumn = (key: keyof typeof columns) => {
     setColumns(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // The backend returns a JSON payload (or mock message) for these endpoints
+      const endpoint = format === 'PDF' 
+        ? '/api/admin/analytics/export-pdf/' 
+        : '/api/admin/overview/export-excel/';
+      
+      const result = await fetchApi(endpoint);
+      
+      // Since the backend currently returns JSON, we will download the JSON data as a file
+      // to satisfy the local saving requirement until true file streams are implemented.
+      const jsonString = JSON.stringify(result, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      // Saving as .json for now to perfectly preserve the data structure provided by backend
+      a.download = `kick360_export_${format.toLowerCase()}_data.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      alert(`${format} export generated successfully!`);
+      onClose();
+    } catch (error) {
+      console.error(`Failed to export ${format}:`, error);
+      alert("Export failed. Ensure the server endpoint is active.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const FormatOption = ({ id, icon, label }: { id: string, icon: React.ReactNode, label: string }) => {
@@ -129,7 +166,6 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
               Select Format
             </h3>
             <div style={{ display: 'flex', gap: '16px' }}>
-              <FormatOption id="CSV" label="CSV" icon={<FileText size={28} />} />
               <FormatOption id="Excel" label="Excel" icon={<FileSpreadsheet size={28} />} />
               <FormatOption id="PDF" label="PDF" icon={<FileIcon size={28} />} />
             </div>
@@ -212,7 +248,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
           }}>
             Cancel
           </Button>
-          <Button fullWidth style={{ 
+          <Button fullWidth onClick={handleExport} disabled={isExporting} style={{ 
             backgroundColor: '#ffffff', 
             color: '#000000', 
             border: 'none', 
@@ -220,10 +256,11 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             gap: '8px',
             fontSize: '15px',
             padding: '16px',
-            height: 'auto' 
+            height: 'auto',
+            opacity: isExporting ? 0.7 : 1
           }}>
             <Download size={20} />
-            Export Datasheet
+            {isExporting ? "Exporting..." : "Export Datasheet"}
           </Button>
         </div>
 

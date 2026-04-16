@@ -12,6 +12,12 @@ export default function TrainingSessionsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<any | null>(null);
   const [removingVideo, setRemovingVideo] = useState<any | null>(null);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSuccess = () => {
+    setReloadTrigger(prev => prev + 1);
+  };
 
   return (
     <div>
@@ -32,6 +38,8 @@ export default function TrainingSessionsPage() {
               type="text" 
               placeholder="Search users, tournaments..." 
               icon={<Search size={18} />} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 backgroundColor: 'var(--surface-primary)',
                 color: 'var(--text-primary)',
@@ -71,14 +79,17 @@ export default function TrainingSessionsPage() {
 
       {/* Main Content */}
       <VideoGrid 
-        onEdit={(video) => setEditingVideo(video)}
-        onRemove={(video) => setRemovingVideo(video)}
+        searchQuery={searchQuery}
+        onEdit={(video: any) => setEditingVideo(video)}
+        onRemove={(video: any) => setRemovingVideo(video)}
+        reloadTrigger={reloadTrigger}
       />
 
       {/* Modals */}
       <AddVideoModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={handleSuccess}
       />
       
       <EditVideoModal 
@@ -91,6 +102,7 @@ export default function TrainingSessionsPage() {
         isOpen={!!removingVideo} 
         onClose={() => setRemovingVideo(null)}
         videoData={removingVideo}
+        onSuccess={handleSuccess}
       />
     </div>
   );

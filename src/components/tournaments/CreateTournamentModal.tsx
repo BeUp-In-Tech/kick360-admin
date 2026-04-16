@@ -1,15 +1,145 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar } from 'lucide-react';
+import { fetchApi } from '@/lib/api';
 
 interface CreateTournamentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
+  tournament?: any | null; // For editing
 }
 
-export function CreateTournamentModal({ isOpen, onClose }: CreateTournamentModalProps) {
+export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }: CreateTournamentModalProps) {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    start_date: "",
+    end_date: "",
+    prize_money: "",
+    product_purchase_link: "",
+    is_free: true,
+    is_active: false
+  });
+  
+  const [isCustomLink, setIsCustomLink] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const predefinedLinks = [
+    "https://kick-360.com/products/kick-ball",
+    "https://kick-360.com/products/pro-grip-socks",
+    "https://kick-360.com/products/kids-pro-grip-socks"
+  ];
+
+  useEffect(() => {
+    if (isOpen) {
+      if (tournament) {
+        setFormData({
+          title: tournament.title || "",
+          description: tournament.description || "",
+          start_date: tournament.start_date ? tournament.start_date.substring(0, 10) : "",
+          end_date: tournament.end_date ? tournament.end_date.substring(0, 10) : "",
+          prize_money: tournament.prize_money || "",
+          product_purchase_link: tournament.product_purchase_link || "",
+          is_free: tournament.is_free !== undefined ? tournament.is_free : true,
+          is_active: tournament.is_active || false
+        });
+        
+        if (tournament.product_purchase_link && !predefinedLinks.includes(tournament.product_purchase_link)) {
+          setIsCustomLink(true);
+        } else {
+          setIsCustomLink(false);
+        }
+      } else {
+        setFormData({
+          title: "",
+          description: "",
+          start_date: "",
+          end_date: "",
+          prize_money: "",
+          product_purchase_link: "",
+          is_free: true,
+          is_active: false
+        });
+        setIsCustomLink(false);
+      }
+    }
+  }, [isOpen, tournament]);
+
   if (!isOpen) return null;
+
+  const handleChange = (e: any) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleLinkSelect = (e: any) => {
+    const value = e.target.value;
+    if (value === "custom") {
+      setIsCustomLink(true);
+      setFormData(prev => ({ ...prev, product_purchase_link: "" }));
+    } else {
+      setIsCustomLink(false);
+      setFormData(prev => ({ ...prev, product_purchase_link: value }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    
+    if (formData.is_free) {
+      try {
+        const response = await fetchApi('/api/admin/tournaments/');
+        const list = Array.isArray(response) ? response : response.results;
+        if (list) {
+          const hasFree = list.some((t: any) => t.is_free && t.id !== tournament?.id);
+          if (hasFree) {
+            alert("You can't create more than 1 free tournament. Please remove the existing one so that you can create another new one.");
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check existing free tournaments", err);
+      }
+    }
+
+    const payload: Record<string, any> = {
+      ...formData,
+      prize_money: formData.prize_money !== "" ? String(formData.prize_money) : "0.00",
+      start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+      end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null
+    };
+    
+    // Remove null values so DRF handles defaults instead of parsing null
+    if (!payload.start_date) delete payload.start_date;
+    if (!payload.end_date) delete payload.end_date;
+
+    try {
+      if (tournament?.id) {
+        await fetchApi(`/api/admin/tournaments/${tournament.id}/`, {
+          method: 'PUT',
+          data: payload
+        });
+      } else {
+        await fetchApi('/api/admin/tournaments/', {
+          method: 'POST',
+          data: payload
+        });
+      }
+      onSuccess();
+      onClose();
+    } catch (e) {
+      console.error(e);
+      alert(`Failed to save tournament: ${e}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div style={{
@@ -37,185 +167,189 @@ export function CreateTournamentModal({ isOpen, onClose }: CreateTournamentModal
         boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
         border: '1px solid var(--border-color)'
       }}>
-        {/* Header */}
-        <div style={{ 
-          padding: '32px', 
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        <div style={{ padding: '32px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-            Create New Tournament
+            {tournament ? 'Edit Tournament' : 'Create New Tournament'}
           </h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0 }}>
             <X size={24} />
           </button>
         </div>
 
-        {/* Form Content */}
-        <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Tournament Title */}
-          <div style={{
-            backgroundColor: 'var(--surface-primary)',
-            borderRadius: '16px',
-            border: '1px solid var(--border-color)',
-            padding: '24px',
-          }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.5px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
               Tournament Title
             </label>
             <input 
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
               type="text" 
               placeholder="Enter tournament title..." 
               style={{
                 width: '100%',
-                backgroundColor: 'var(--background)',
+                backgroundColor: 'var(--surface-primary)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 padding: '14px 16px',
                 color: 'var(--text-primary)',
-                fontSize: '14px',
                 outline: 'none'
               }}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            {/* Prize Pool */}
-            <div style={{
-              backgroundColor: 'var(--surface-primary)',
-              borderRadius: '16px',
-              border: '1px solid var(--border-color)',
-              padding: '24px',
-            }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.5px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                 Prize Pool
               </label>
               <input 
-                type="text" 
+                name="prize_money"
+                value={formData.prize_money}
+                onChange={handleChange}
+                type="number" 
                 placeholder="Enter prize pool..." 
                 style={{
                   width: '100%',
-                  backgroundColor: 'var(--background)',
+                  backgroundColor: 'var(--surface-primary)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '14px 16px',
                   color: 'var(--text-primary)',
-                  fontSize: '14px',
                   outline: 'none'
                 }}
               />
             </div>
 
-            {/* Product Purchase Link */}
-            <div style={{
-              backgroundColor: 'var(--surface-primary)',
-              borderRadius: '16px',
-              border: '1px solid var(--border-color)',
-              padding: '24px',
-            }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.5px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                 Product Purchase Link
               </label>
-              <input 
-                type="text" 
-                placeholder="Enter Product Purchase Link..." 
+              
+              <select 
+                value={isCustomLink ? "custom" : formData.product_purchase_link}
+                onChange={handleLinkSelect}
                 style={{
                   width: '100%',
-                  backgroundColor: 'var(--background)',
+                  backgroundColor: 'var(--surface-primary)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '14px 16px',
                   color: 'var(--text-primary)',
-                  fontSize: '14px',
+                  marginBottom: isCustomLink ? '8px' : '0',
                   outline: 'none'
                 }}
-              />
+              >
+                <option value="">-- Select Product Link --</option>
+                {predefinedLinks.map(link => (
+                  <option key={link} value={link}>{link.replace('https://kick-360.com/products/', '')}</option>
+                ))}
+                <option value="custom">Custom Link (Type Manually)</option>
+              </select>
+
+              {isCustomLink && (
+                <input 
+                  name="product_purchase_link"
+                  value={formData.product_purchase_link}
+                  onChange={handleChange}
+                  type="text" 
+                  placeholder="https://..." 
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'var(--surface-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '14px 16px',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                />
+              )}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            {/* Starting Date */}
-            <div style={{
-              backgroundColor: 'var(--surface-primary)',
-              borderRadius: '16px',
-              border: '1px solid var(--border-color)',
-              padding: '24px',
-            }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.5px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                 Starting Date
               </label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
-                  <Calendar size={18} />
-                </div>
-                <input 
-                  type="date"
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'var(--background)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '14px 16px 14px 48px',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    outline: 'none',
-                    colorScheme: 'dark'
-                  }}
-                />
-              </div>
+              <input 
+                name="start_date"
+                value={formData.start_date}
+                onChange={handleChange}
+                type="date"
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  colorScheme: 'dark'
+                }}
+              />
             </div>
 
-            {/* Expiration Date */}
-            <div style={{
-              backgroundColor: 'var(--surface-primary)',
-              borderRadius: '16px',
-              border: '1px solid var(--border-color)',
-              padding: '24px',
-            }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.5px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                 Expiration Date
               </label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
-                  <Calendar size={18} />
-                </div>
-                <input 
-                  type="date"
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'var(--background)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '14px 16px 14px 48px',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    outline: 'none',
-                    colorScheme: 'dark'
-                  }}
-                />
-              </div>
+              <input 
+                name="end_date"
+                value={formData.end_date}
+                onChange={handleChange}
+                type="date"
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  colorScheme: 'dark'
+                }}
+              />
             </div>
           </div>
 
-          {/* Rules & Info */}
-          <div style={{
-            backgroundColor: 'var(--surface-primary)',
-            borderRadius: '16px',
-            border: '1px solid var(--border-color)',
-            padding: '24px',
-          }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.5px' }}>
-              Rules & Info
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '14px' }}>
+              <input 
+                type="checkbox" 
+                name="is_free" 
+                checked={formData.is_free} 
+                onChange={handleChange} 
+              />
+              Is Free Registration?
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '14px' }}>
+              <input 
+                type="checkbox" 
+                name="is_active" 
+                checked={formData.is_active} 
+                onChange={handleChange} 
+              />
+              Mark as Active immediately
+            </label>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Rules & Description
             </label>
             <textarea 
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
               placeholder="Condensed tournament rules, eligibility, and description..." 
               rows={4}
               style={{
                 width: '100%',
-                backgroundColor: 'var(--background)',
+                backgroundColor: 'var(--surface-primary)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 padding: '16px',
@@ -228,19 +362,12 @@ export function CreateTournamentModal({ isOpen, onClose }: CreateTournamentModal
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div style={{
-          backgroundColor: 'var(--surface-primary)',
-          padding: '24px 32px',
-          display: 'flex',
-          gap: '16px',
-          borderTop: '1px solid var(--border-color)'
-        }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+        <div style={{ padding: '24px 32px', display: 'flex', gap: '16px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--surface-primary)' }}>
+          <button onClick={onClose} disabled={isSubmitting} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
-          <button style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-            Create & Publish
+          <button onClick={handleSubmit} disabled={isSubmitting} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'var(--text-primary)', border: 'none', color: 'var(--background)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: isSubmitting ? 0.7 : 1 }}>
+            {isSubmitting ? 'Saving...' : (tournament ? 'Save Changes' : 'Create Tournament')}
           </button>
         </div>
 

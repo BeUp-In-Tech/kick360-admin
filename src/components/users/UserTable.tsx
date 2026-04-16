@@ -1,27 +1,60 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MoreHorizontal, ChevronLeft, ChevronRight, Trash2, Ban, CheckCircle } from 'lucide-react';
+import { fetchApi } from '@/lib/api';
 
-const MOCK_USERS = [
-  { id: 1, initials: 'CM', name: 'Carlos Mendez', country: 'Brazil', sessions: 142, status: 'Active', joined: 'Jan 12, 2025' },
-  { id: 2, initials: 'SK', name: 'Sarah Kim', country: 'South Korea', sessions: 98, status: 'Active', joined: 'Feb 3, 2025' },
-  { id: 3, initials: 'JL', name: 'James Lewis', country: 'UK', sessions: 67, status: 'Suspend', joined: 'Mar 15, 2025' },
-  { id: 4, initials: 'AD', name: 'Amara Diallo', country: 'Senegal', sessions: 210, status: 'Active', joined: 'Dec 1, 2024' },
-  { id: 5, initials: 'RT', name: 'Riku Tanaka', country: 'Japan', sessions: 45, status: 'Suspend', joined: 'Apr 20, 2025' },
-  { id: 6, initials: 'ER', name: 'Elena Rossi', country: 'Italy', sessions: 180, status: 'Active', joined: 'Nov 8, 2024' },
-  { id: 7, initials: 'DO', name: 'David Okafor', country: 'Nigeria', sessions: 33, status: 'Active', joined: 'May 2, 2025' },
-  { id: 8, initials: 'LW', name: 'Liu Wei', country: 'China', sessions: 156, status: 'Active', joined: 'Jan 28, 2025' },
-];
+export function UserTable({ searchQuery = "" }: { searchQuery?: string }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [nextUrl, setNextUrl] = useState<string | null>(null);
+  const [prevUrl, setPrevUrl] = useState<string | null>(null);
 
-export function UserTable() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [openActionId, setOpenActionId] = useState<number | null>(null);
-  const totalUsers = 1240;
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+
+  const getRelativeUrl = (fullUrl: string | null) => {
+    if (!fullUrl) return null;
+    try {
+      const urlObj = new URL(fullUrl);
+      return urlObj.pathname + urlObj.search;
+    } catch(e) {
+      return fullUrl;
+    }
+  };
+
+  const loadUsers = async (url: string = "/api/admin/users/") => {
+    setIsLoading(true);
+    try {
+      const response = await fetchApi(url);
+      if (response && response.results) {
+        setUsers(response.results);
+        setTotalUsers(response.count || 0);
+        setNextUrl(getRelativeUrl(response.next));
+        setPrevUrl(getRelativeUrl(response.previous));
+      }
+    } catch (error) {
+      console.error("Failed to load users:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const filteredUsers = React.useMemo(() => {
+    if (!searchQuery) return users;
+    return users.filter(user => 
+      (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [users, searchQuery]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = () => {
       if (openActionId !== null) {
         setOpenActionId(null);
       }
@@ -30,7 +63,7 @@ export function UserTable() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [openActionId]);
 
-  const toggleActionMenu = (e: React.MouseEvent, id: number) => {
+  const toggleActionMenu = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setOpenActionId(openActionId === id ? null : id);
   };
@@ -62,8 +95,7 @@ export function UserTable() {
     </button>
   );
 
-  const getStatusBadge = (status: string) => {
-    const isActive = status === 'Active';
+  const getStatusBadge = (isActive: boolean) => {
     return (
       <span style={{
         backgroundColor: isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -73,9 +105,39 @@ export function UserTable() {
         fontSize: '12px',
         fontWeight: 600,
       }}>
-        {status}
+        {isActive ? 'Active' : 'Suspended'}
       </span>
     );
+  };
+
+  const handleAction = async (userId: string, actionType: 'suspend' | 'delete' | 'reactivate') => {
+    setOpenActionId(null);
+    setIsLoading(true);
+    try {
+      if (actionType === 'suspend') {
+        await fetchApi(`/api/admin/users/${userId}/suspend/`, { method: 'POST', data: {} });
+      } else if (actionType === 'delete') {
+        await fetchApi(`/api/admin/users/${userId}/delete/`, { method: 'DELETE' });
+      } else if (actionType === 'reactivate') {
+        await fetchApi(`/api/admin/users/${userId}/`, { method: 'PUT', data: { is_active: true } });
+      }
+      // Reload current list
+      loadUsers();
+    } catch (error) {
+      console.error(`Failed to ${actionType} user:`, error);
+      alert(`Action failed: ${error}`);
+      setIsLoading(false);
+    }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   return (
@@ -83,7 +145,7 @@ export function UserTable() {
       backgroundColor: 'var(--surface-primary)',
       borderRadius: '16px',
       border: '1px solid var(--border-color)',
-      overflow: 'visible' // Changed from hidden to visible for the popovers
+      overflow: 'visible' 
     }}>
       <div style={{ width: '100%', overflowX: 'visible', overflowY: 'visible', paddingBottom: openActionId ? '60px' : '0' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -91,100 +153,118 @@ export function UserTable() {
             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>USER</th>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>COUNTRY</th>
-              <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>SESSIONS</th>
+              <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>KICKS</th>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>STATUS</th>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>JOINED</th>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px', textAlign: 'right' }}>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
-            {MOCK_USERS.map((user) => (
-              <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', height: '72px' }}>
-                <td style={{ padding: '0 24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                      color: 'var(--accent-primary)',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 600,
-                      fontSize: '13px'
-                    }}>
-                      {user.initials}
+            {isLoading ? (
+              <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}>Loading...</td></tr>
+            ) : filteredUsers.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}>No users found.</td></tr>
+            ) : (
+              filteredUsers.map((user) => (
+                <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', height: '72px' }}>
+                  <td style={{ padding: '0 24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        color: 'var(--accent-primary)',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 600,
+                        fontSize: '13px'
+                      }}>
+                        {getInitials(user.name || user.email)}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', textDecoration: !user.is_active ? 'line-through' : 'none', opacity: !user.is_active ? 0.5 : 1 }}>
+                          {user.name || 'Unknown'}
+                        </span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{user.email}</span>
+                      </div>
                     </div>
-                    <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', textDecoration: user.status === 'Suspend' ? 'line-through' : 'none', opacity: user.status === 'Suspend' ? 0.5 : 1 }}>
-                      {user.name}
-                    </span>
-                  </div>
-                </td>
-                <td style={{ padding: '0 24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  {user.country}
-                </td>
-                <td style={{ padding: '0 24px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {user.sessions}
-                </td>
-                <td style={{ padding: '0 24px' }}>
-                  {getStatusBadge(user.status)}
-                </td>
-                <td style={{ padding: '0 24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  {user.joined}
-                </td>
-                <td style={{ padding: '0 24px', textAlign: 'right', position: 'relative' }}>
-                  <button 
-                    onClick={(e) => toggleActionMenu(e, user.id)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', padding: '8px' }}
-                  >
-                    <MoreHorizontal size={20} />
-                  </button>
-                  
-                  {openActionId === user.id && (
-                    <div 
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ 
-                        position: 'absolute', 
-                        right: '48px', 
-                        top: '50%', 
-                        transform: 'translateY(-50%)', 
-                        background: 'var(--surface-primary)', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: '12px', 
-                        padding: '8px', 
-                        zIndex: 50, 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '2px', 
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.5)', 
-                        width: '160px', 
-                      }}
+                  </td>
+                  <td style={{ padding: '0 24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    {user.country || 'N/A'}
+                  </td>
+                  <td style={{ padding: '0 24px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {(user.total_kicks || 0).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '0 24px' }}>
+                    {getStatusBadge(user.is_active)}
+                  </td>
+                  <td style={{ padding: '0 24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    {formatDate(user.date_joined)}
+                  </td>
+                  <td style={{ padding: '0 24px', textAlign: 'right', position: 'relative' }}>
+                    <button 
+                      onClick={(e) => toggleActionMenu(e, user.id)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', padding: '8px' }}
                     >
-                      <ActionButton 
-                        icon={<Ban size={16} />} 
-                        label="Suspend User" 
-                        color="var(--warning)" 
-                        onClick={() => setOpenActionId(null)} 
-                      />
-                      <ActionButton 
-                        icon={<CheckCircle size={16} />} 
-                        label="Reactivate User" 
-                        color="var(--success)" 
-                        onClick={() => setOpenActionId(null)} 
-                      />
-                      <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }} />
-                      <ActionButton 
-                        icon={<Trash2 size={16} />} 
-                        label="Delete User" 
-                        color="var(--danger)" 
-                        onClick={() => setOpenActionId(null)} 
-                      />
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                      <MoreHorizontal size={20} />
+                    </button>
+                    
+                    {openActionId === user.id && (
+                      <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ 
+                          position: 'absolute', 
+                          right: '48px', 
+                          top: '50%', 
+                          transform: 'translateY(-50%)', 
+                          background: 'var(--surface-primary)', 
+                          border: '1px solid var(--border-color)', 
+                          borderRadius: '12px', 
+                          padding: '8px', 
+                          zIndex: 50, 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '2px', 
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.5)', 
+                          width: '160px', 
+                        }}
+                      >
+                        {user.is_active ? (
+                          <ActionButton 
+                            icon={<Ban size={16} />} 
+                            label="Suspend User" 
+                            color="var(--warning)" 
+                            onClick={() => handleAction(user.id, 'suspend')} 
+                          />
+                        ) : (
+                          <ActionButton 
+                            icon={<CheckCircle size={16} />} 
+                            label="Reactivate User" 
+                            color="var(--success)" 
+                            onClick={() => handleAction(user.id, 'reactivate')} 
+                          />
+                        )}
+                        <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }} />
+                        <ActionButton 
+                          icon={<Trash2 size={16} />} 
+                          label="Delete User" 
+                          color="var(--danger)" 
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this user?')) {
+                              handleAction(user.id, 'delete');
+                            } else {
+                              setOpenActionId(null);
+                            }
+                          }} 
+                        />
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -198,11 +278,14 @@ export function UserTable() {
         borderTop: '1px solid var(--border-color)'
       }}>
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Showing <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>1-8</span> of <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{totalUsers.toLocaleString()}</span> users
+          Showing <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{users.length}</span> of <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{totalUsers.toLocaleString()}</span> users
         </div>
         
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button style={{
+          <button 
+            disabled={!prevUrl || isLoading}
+            onClick={() => prevUrl && loadUsers(prevUrl)}
+            style={{
             width: '32px',
             height: '32px',
             borderRadius: '8px',
@@ -212,14 +295,17 @@ export function UserTable() {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--text-secondary)',
-            cursor: 'pointer',
+            cursor: !prevUrl || isLoading ? 'not-allowed' : 'pointer',
+            opacity: !prevUrl || isLoading ? 0.5 : 1,
             transition: 'all 0.2s'
           }}
           onMouseOver={(e) => {
+            if (!prevUrl || isLoading) return;
             e.currentTarget.style.backgroundColor = 'var(--text-primary)';
             e.currentTarget.style.color = 'var(--background)';
           }}
           onMouseOut={(e) => {
+            if (!prevUrl || isLoading) return;
             e.currentTarget.style.backgroundColor = 'transparent';
             e.currentTarget.style.color = 'var(--text-secondary)';
           }}
@@ -227,7 +313,10 @@ export function UserTable() {
             <ChevronLeft size={16} />
           </button>
           
-          <button style={{
+          <button 
+            disabled={!nextUrl || isLoading}
+            onClick={() => nextUrl && loadUsers(nextUrl)}
+            style={{
             width: '32px',
             height: '32px',
             borderRadius: '8px',
@@ -237,14 +326,17 @@ export function UserTable() {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--text-secondary)',
-            cursor: 'pointer',
+            cursor: !nextUrl || isLoading ? 'not-allowed' : 'pointer',
+            opacity: !nextUrl || isLoading ? 0.5 : 1,
             transition: 'all 0.2s'
           }}
           onMouseOver={(e) => {
+            if (!nextUrl || isLoading) return;
             e.currentTarget.style.backgroundColor = 'var(--text-primary)';
             e.currentTarget.style.color = 'var(--background)';
           }}
           onMouseOut={(e) => {
+            if (!nextUrl || isLoading) return;
             e.currentTarget.style.backgroundColor = 'transparent';
             e.currentTarget.style.color = 'var(--text-secondary)';
           }}

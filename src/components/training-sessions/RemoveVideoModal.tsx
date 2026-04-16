@@ -1,16 +1,34 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { fetchApi } from '@/lib/api';
 
 interface RemoveVideoModalProps {
   isOpen: boolean;
   onClose: () => void;
   videoData: any;
+  onSuccess?: () => void;
 }
 
-export function RemoveVideoModal({ isOpen, onClose, videoData }: RemoveVideoModalProps) {
+export function RemoveVideoModal({ isOpen, onClose, videoData, onSuccess }: RemoveVideoModalProps) {
+  const [isRemoving, setIsRemoving] = useState(false);
+
   if (!isOpen || !videoData) return null;
+
+  const handleRemove = async () => {
+    setIsRemoving(true);
+    try {
+      await fetchApi(`/api/admin/videos/${videoData.id}/`, { method: 'DELETE', data: {} });
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (error) {
+      console.error("Failed to remove video:", error);
+      alert(`Failed to remove video: ${error}`);
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   return (
     <div style={{
@@ -71,11 +89,11 @@ export function RemoveVideoModal({ isOpen, onClose, videoData }: RemoveVideoModa
           borderTop: '1px solid var(--border-color)',
           borderRadius: '0 0 24px 24px'
         }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={onClose} disabled={isRemoving} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
-          <button style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: 'var(--danger)', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
-            Confirm Removal
+          <button onClick={handleRemove} disabled={isRemoving} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: 'var(--danger)', fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: isRemoving ? 0.7 : 1 }}>
+            {isRemoving ? 'Removing...' : 'Confirm Removal'}
           </button>
         </div>
 

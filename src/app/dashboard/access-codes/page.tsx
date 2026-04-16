@@ -8,6 +8,7 @@ import { ManageCodeModal } from "@/components/access-codes/ManageCodeModal";
 
 export default function AccessCodesPage() {
   const [selectedCode, setSelectedCode] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div>
@@ -27,6 +28,8 @@ export default function AccessCodesPage() {
             <Input 
               type="text" 
               placeholder="Search users, tournaments..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               icon={<Search size={18} />} 
               style={{
                 backgroundColor: 'var(--surface-primary)',
@@ -44,7 +47,7 @@ export default function AccessCodesPage() {
       </div>
 
       {/* Main Content */}
-      <AccessCodeTable onManageCode={(code) => setSelectedCode(code)} />
+      <AccessCodeTable onManageCode={(code) => setSelectedCode(code)} searchQuery={searchQuery} />
 
       {/* Modal */}
       <ManageCodeModal 

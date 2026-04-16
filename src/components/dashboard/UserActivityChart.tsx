@@ -3,17 +3,20 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-const data = [
-  { name: 'MON', users: 150, secondary: 100 },
-  { name: 'TUE', users: 200, secondary: 120 },
-  { name: 'WED', users: 180, secondary: 140 },
-  { name: 'THU', users: 280, secondary: 130 },
-  { name: 'FRI', users: 250, secondary: 150 },
-  { name: 'SAT', users: 380, secondary: 280 },
-  { name: 'SUN', users: 400, secondary: 300 },
-];
-
-export function UserActivityChart() {
+export function UserActivityChart({ data = [] }: { data?: any[] }) {
+  const chartData = data && data.length > 0 ? data.map((d: any, i: number) => ({
+    name: d.name || `Day ${i + 1}`,
+    users: d.registered || 0,
+    secondary: d.deleted || 0
+  })) : [
+    { name: 'MON', users: 150, secondary: 100 },
+    { name: 'TUE', users: 200, secondary: 120 },
+    { name: 'WED', users: 180, secondary: 140 },
+    { name: 'THU', users: 280, secondary: 130 },
+    { name: 'FRI', users: 250, secondary: 150 },
+    { name: 'SAT', users: 380, secondary: 280 },
+    { name: 'SUN', users: 400, secondary: 300 },
+  ];
   const [timeframe, setTimeframe] = useState<'Weekly' | 'Monthly'>('Weekly');
 
   return (
@@ -73,7 +76,7 @@ export function UserActivityChart() {
 
       <div style={{ height: '280px', width: '100%' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ffffff" stopOpacity={0.1}/>

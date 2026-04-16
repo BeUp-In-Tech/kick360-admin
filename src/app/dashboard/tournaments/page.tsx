@@ -8,6 +8,23 @@ import { CreateTournamentModal } from "@/components/tournaments/CreateTournament
 
 export default function TournamentsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+
+  const handleEdit = (tournament: any) => {
+    setSelectedTournament(tournament);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsCreateModalOpen(false);
+    setSelectedTournament(null);
+  };
+
+  const handleSuccess = () => {
+    setReloadTrigger(prev => prev + 1);
+  };
 
   return (
     <div>
@@ -26,7 +43,9 @@ export default function TournamentsPage() {
           <div style={{ width: '320px' }}>
             <Input 
               type="text" 
-              placeholder="Search users, tournaments..." 
+              placeholder="Search tournaments..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               icon={<Search size={18} />} 
               style={{
                 backgroundColor: 'var(--surface-primary)',
@@ -55,7 +74,10 @@ export default function TournamentsPage() {
             cursor: 'pointer',
             transition: 'opacity 0.2s',
           }}
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => {
+            setSelectedTournament(null);
+            setIsCreateModalOpen(true);
+          }}
           onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
           onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
           >
@@ -66,12 +88,18 @@ export default function TournamentsPage() {
       </div>
 
       {/* Main Content */}
-      <TournamentTable />
+      <TournamentTable 
+        searchQuery={searchQuery} 
+        onEdit={handleEdit} 
+        reloadTrigger={reloadTrigger} 
+      />
 
       {/* Modal */}
       <CreateTournamentModal 
         isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
+        onClose={handleClose} 
+        onSuccess={handleSuccess}
+        tournament={selectedTournament}
       />
     </div>
   );

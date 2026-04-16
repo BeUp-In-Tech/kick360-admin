@@ -10,6 +10,10 @@ import { ResetRankingsModal } from "@/components/leaderboard/ResetRankingsModal"
 export default function LeaderboardPage() {
   const [deletingPlayer, setDeletingPlayer] = useState<any | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const triggerRefresh = () => setRefreshKey(prev => prev + 1);
 
   return (
     <div>
@@ -30,6 +34,8 @@ export default function LeaderboardPage() {
               type="text" 
               placeholder="Search users, tournaments..." 
               icon={<Search size={18} />} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 backgroundColor: 'var(--surface-primary)',
                 color: 'var(--text-primary)',
@@ -69,6 +75,8 @@ export default function LeaderboardPage() {
 
       {/* Main Content */}
       <LeaderboardTable 
+        refreshKey={refreshKey}
+        searchQuery={searchQuery}
         onRemovePlayer={(player) => setDeletingPlayer(player)}
       />
 
@@ -77,11 +85,13 @@ export default function LeaderboardPage() {
         isOpen={!!deletingPlayer} 
         onClose={() => setDeletingPlayer(null)}
         playerData={deletingPlayer}
+        onDeleted={triggerRefresh}
       />
       
       <ResetRankingsModal 
         isOpen={isResetModalOpen} 
         onClose={() => setIsResetModalOpen(false)} 
+        onReset={triggerRefresh}
       />
     </div>
   );

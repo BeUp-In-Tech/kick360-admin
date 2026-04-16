@@ -2,14 +2,20 @@
 
 import React from 'react';
 
-const activities = [
-  { id: 1, name: 'Carlos Mendez', time: '2m ago', desc: 'Submitted video "Scissor Kick Master"' },
-  { id: 2, name: 'Sarah Kim', time: '3m ago', desc: 'Enrolled in "Elite Strikers" tournament' },
-  { id: 3, name: 'James Lewis', time: '13m ago', desc: 'Flagged for suspicious login attempts', isAlert: true },
-  { id: 4, name: 'Amara Diop', time: '22m ago', desc: 'New personal record: 88 points' },
-];
+export function RecentActivity({ activities = [] }: { activities?: any[] }) {
+  const displayActivities = activities.length > 0 ? activities.map((item: any, i: number) => ({
+    id: i,
+    name: item.user || 'Unknown User',
+    time: new Date(item.created_at).toLocaleTimeString(),
+    desc: item.details || item.action || 'Performed an action',
+    isAlert: item.type === 'alert'
+  })) : [
+    { id: 1, name: 'Carlos Mendez', time: '2m ago', desc: 'Submitted video "Scissor Kick Master"' },
+    { id: 2, name: 'Sarah Kim', time: '3m ago', desc: 'Enrolled in "Elite Strikers" tournament' },
+    { id: 3, name: 'James Lewis', time: '13m ago', desc: 'Flagged for suspicious login attempts', isAlert: true },
+    { id: 4, name: 'Amara Diop', time: '22m ago', desc: 'New personal record: 88 points' },
+  ];
 
-export function RecentActivity() {
   return (
     <div style={{
       backgroundColor: 'var(--surface-primary)',
@@ -23,9 +29,9 @@ export function RecentActivity() {
         Recent Activity
       </h3>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {activities.map((item) => (
-          <div key={item.id} style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto', maxHeight: '400px', paddingRight: '12px' }}>
+        {displayActivities.slice(0, 10).map((item, index) => (
+          <div key={item.id || index} style={{ display: 'flex', gap: '12px' }}>
             <div style={{ marginTop: '4px' }}>
               <div style={{
                 width: '8px',

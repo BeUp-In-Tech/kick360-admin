@@ -15,21 +15,6 @@ export function Header() {
       backgroundColor: 'var(--background)'
     }}>
       <div style={{ width: '400px' }}>
-        <Input 
-          type="text" 
-          placeholder="Search data points..." 
-          icon={<Search size={18} />} 
-          style={{
-            backgroundColor: 'var(--surface-primary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            padding: '10px 16px 10px 44px',
-            borderRadius: '8px',
-            width: '100%',
-            outline: 'none',
-            fontSize: '14px'
-          }}
-        />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center' }}>
