@@ -96,6 +96,7 @@ export default function TrainingSessionsPage() {
         isOpen={!!editingVideo} 
         onClose={() => setEditingVideo(null)}
         videoData={editingVideo}
+        onSuccess={handleSuccess}
       />
       
       <RemoveVideoModal 

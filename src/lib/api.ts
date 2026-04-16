@@ -45,6 +45,10 @@ export const fetchApi = async (endpoint: string, options: ApiOptions = {}) => {
       throw new Error('Unauthorized');
     }
 
+    if (response.status === 204 || response.status === 205) {
+      return {};
+    }
+
     const isJson = response.headers.get('content-type')?.includes('application/json');
     const result = isJson ? await response.json() : await response.text();
 
