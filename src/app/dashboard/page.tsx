@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Trophy, PlaySquare, UploadCloud, Download } from "lucide-react";
+import { Users, Trophy, PlaySquare, KeyRound, Download } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { UserActivityChart } from "@/components/dashboard/UserActivityChart";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
@@ -18,11 +18,12 @@ export default function DashboardOverview() {
     const fetchOverview = async () => {
       setIsLoading(true);
       try {
-        const [usersRes, tournamentsRes, sessionsRes, videosRes] = await Promise.all([
+        const [usersRes, tournamentsRes, sessionsRes, videosRes, accessCodesRes] = await Promise.all([
           fetchApi("/api/admin/users/").catch(() => ({ count: 0, results: [] })),
           fetchApi("/api/admin/tournaments/").catch(() => ({ count: 0, results: [] })),
           fetchApi("/api/admin/videos/categories/").catch(() => ({ count: 0, results: [] })),
-          fetchApi("/api/admin/videos/").catch(() => ({ count: 0, results: [] }))
+          fetchApi("/api/admin/videos/").catch(() => ({ count: 0, results: [] })),
+          fetchApi("/api/admin/access-codes/").catch(() => ({ count: 0, results: [] }))
         ]);
 
         const users = Array.isArray(usersRes) ? usersRes : usersRes?.results || [];
@@ -132,7 +133,8 @@ export default function DashboardOverview() {
           total_users: usersRes?.count || users.length,
           total_tournaments: tournamentsRes?.count || tournaments.length,
           total_sessions: sessionsRes?.count || sessions.length,
-          total_videos: tournamentsRes?.count || tournaments.length,
+          total_videos: videosRes?.count || videos.length,
+          total_access_codes: accessCodesRes?.count || 0,
           registration_trend: userActivityData,
           recent_activity: allActivities,
           analytics
@@ -207,10 +209,10 @@ export default function DashboardOverview() {
               icon={<PlaySquare size={24} />} 
              />
             <StatsCard 
-              title="Tournament" 
-              value={data?.total_videos?.toLocaleString() || "0"} 
+              title="Access Codes" 
+              value={data?.total_access_codes?.toLocaleString() || "0"} 
               trend={{ value: 'Active', isPositive: true }} 
-              icon={<Trophy size={24} />} 
+              icon={<KeyRound size={24} />} 
              />
           </div>
 
