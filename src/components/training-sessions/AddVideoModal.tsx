@@ -13,6 +13,7 @@ interface AddVideoModalProps {
 export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps) {
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,6 +43,7 @@ export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps
       });
       setVideoFile(null);
       setNewCategoryName("");
+      setNewCategoryDescription("");
     }
   }, [isOpen]);
 
@@ -64,9 +66,14 @@ export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps
     try {
       await fetchApi('/api/admin/videos/categories/', {
         method: 'POST',
-        data: { title: newCategoryName, is_active: true }
+        data: { 
+          title: newCategoryName, 
+          description: newCategoryDescription,
+          is_active: true 
+        }
       });
       setNewCategoryName("");
+      setNewCategoryDescription("");
       alert("Category added successfully!");
       loadCategories(); // reload dropdown
     } catch (e) {
@@ -199,24 +206,42 @@ export function AddVideoModal({ isOpen, onClose, onSuccess }: AddVideoModalProps
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.5px' }}>
               Add New Category
             </label>
-            <input 
-              type="text" 
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Enter New Category" 
-              style={{
-                width: '100%',
-                backgroundColor: 'var(--background)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '14px 16px',
-                color: 'var(--text-primary)',
-                fontSize: '13px',
-                outline: 'none',
-                marginBottom: '16px'
-              }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input 
+                type="text" 
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Category Title (e.g. Football)" 
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--background)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
+              />
+              <textarea 
+                value={newCategoryDescription}
+                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                placeholder="Category Description (optional)" 
+                rows={2}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--background)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  resize: 'none'
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
               <button 
                 onClick={handleAddCategory}
                 disabled={isAddingCategory || !newCategoryName.trim()}

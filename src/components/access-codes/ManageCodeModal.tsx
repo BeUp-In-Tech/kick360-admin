@@ -49,6 +49,24 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this access code?")) return;
+    setIsLoading(true);
+    try {
+      await fetchApi(`/api/admin/access-codes/${codeData.id}/`, {
+        method: "DELETE"
+      });
+      alert('Access code deleted!');
+      onClose();
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete code');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleActionClick = (actionType: 'activate' | 'deactivate' | 'renew' | 'save') => {
     let payload: any = {};
     if (expiryDate) {
@@ -186,26 +204,45 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
               border: '1px solid var(--border-color)',
               padding: '24px',
             }}>
-              <div style={{ position: 'relative', marginBottom: isExpired ? '16px' : '0' }}>
-                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
-                  <Calendar size={18} />
+              <div style={{ position: 'relative', display: 'flex', gap: '12px', alignItems: 'center', marginBottom: isExpired ? '16px' : '0' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
+                    <Calendar size={18} />
+                  </div>
+                  <input 
+                    type="date"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '12px 16px 12px 48px',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      colorScheme: 'dark'
+                    }}
+                  />
                 </div>
-                <input 
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
+                <button 
+                  disabled={isLoading}
+                  onClick={() => handleActionClick('save')}
                   style={{
-                    width: '100%',
-                    backgroundColor: 'var(--background)',
-                    border: '1px solid var(--border-color)',
+                    padding: '12px 20px',
+                    backgroundColor: 'var(--text-primary)',
+                    color: 'var(--background)',
+                    border: 'none',
                     borderRadius: '8px',
-                    padding: '12px 16px 12px 48px',
-                    color: 'var(--text-primary)',
                     fontSize: '14px',
-                    outline: 'none',
-                    colorScheme: 'dark'
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    opacity: isLoading ? 0.7 : 1
                   }}
-                />
+                >
+                  Update
+                </button>
               </div>
 
               {isExpired && (
@@ -236,15 +273,35 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
           backgroundColor: 'var(--surface-primary)',
           padding: '24px 32px',
           display: 'flex',
-          gap: '16px',
-          borderTop: '1px solid var(--border-color)'
+          gap: '12px',
+          borderTop: '1px solid var(--border-color)',
+          flexWrap: 'wrap'
         }}>
+          <button 
+            disabled={isLoading} 
+            onClick={handleDelete} 
+            style={{ 
+              padding: '14px 20px', 
+              borderRadius: '8px', 
+              backgroundColor: 'transparent', 
+              border: '1px solid rgba(239, 68, 68, 0.2)', 
+              color: 'var(--danger)', 
+              fontSize: '14px', 
+              fontWeight: 600, 
+              cursor: 'pointer' 
+            }}
+          >
+            Delete Code
+          </button>
+          
+          <div style={{ flex: 1 }} />
+
           {!codeData.is_active && !isExpired && (
             <>
-              <button disabled={isLoading} onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={onClose} style={{ padding: '14px 24px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button disabled={isLoading} onClick={() => handleActionClick('activate')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={() => handleActionClick('activate')} style={{ padding: '14px 24px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Activate Code
               </button>
             </>
@@ -252,21 +309,21 @@ export function ManageCodeModal({ isOpen, onClose, codeData }: ManageCodeModalPr
 
           {isActive && !isExpired && (
             <>
-              <button disabled={isLoading} onClick={() => handleActionClick('deactivate')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--danger)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={() => handleActionClick('deactivate')} style={{ padding: '14px 24px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--danger)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Deactivate Code
               </button>
-              <button disabled={isLoading} onClick={() => handleActionClick('save')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-                Save Changes
+              <button disabled={isLoading} onClick={() => handleActionClick('save')} style={{ padding: '14px 24px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                Update
               </button>
             </>
           )}
 
           {(isExpired || (!isActive && isExpired)) && (
             <>
-              <button disabled={isLoading} onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={onClose} style={{ padding: '14px 24px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button disabled={isLoading} onClick={() => handleActionClick('renew')} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              <button disabled={isLoading} onClick={() => handleActionClick('renew')} style={{ padding: '14px 24px', borderRadius: '8px', backgroundColor: '#ffffff', border: 'none', color: '#000000', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Renew & Activate Code
               </button>
             </>

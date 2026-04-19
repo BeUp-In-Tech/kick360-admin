@@ -5,10 +5,12 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { AccessCodeTable } from "@/components/access-codes/AccessCodeTable";
 import { ManageCodeModal } from "@/components/access-codes/ManageCodeModal";
+import { ManagePackagesModal } from "@/components/access-codes/ManagePackagesModal";
 
 export default function AccessCodesPage() {
   const [selectedCode, setSelectedCode] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPackagesModalOpen, setIsPackagesModalOpen] = useState(false);
 
   return (
     <div>
@@ -24,6 +26,24 @@ export default function AccessCodesPage() {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={() => setIsPackagesModalOpen(true)}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: 'var(--text-primary)',
+              color: 'var(--background)',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            Manage Packages
+          </button>
           <div style={{ width: '320px' }}>
             <Input 
               type="text" 
@@ -54,6 +74,11 @@ export default function AccessCodesPage() {
         isOpen={!!selectedCode} 
         onClose={() => setSelectedCode(null)} 
         codeData={selectedCode} 
+      />
+
+      <ManagePackagesModal 
+        isOpen={isPackagesModalOpen}
+        onClose={() => setIsPackagesModalOpen(false)}
       />
     </div>
   );

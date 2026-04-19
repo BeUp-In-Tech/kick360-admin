@@ -115,11 +115,11 @@ export function UserTable({ searchQuery = "" }: { searchQuery?: string }) {
     setIsLoading(true);
     try {
       if (actionType === 'suspend') {
-        await fetchApi(`/api/admin/users/${userId}/suspend/`, { method: 'POST', data: {} });
+        await fetchApi(`/api/admin/users/${userId}/suspend/`, { method: 'PATCH', data: {} });
       } else if (actionType === 'delete') {
         await fetchApi(`/api/admin/users/${userId}/delete/`, { method: 'DELETE' });
       } else if (actionType === 'reactivate') {
-        await fetchApi(`/api/admin/users/${userId}/`, { method: 'PUT', data: { is_active: true } });
+        await fetchApi(`/api/admin/users/${userId}/toggle_status/`, { method: 'POST', data: {} });
       }
       // Reload current list
       loadUsers();

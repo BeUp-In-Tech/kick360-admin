@@ -66,103 +66,171 @@ export function VideoGrid({ searchQuery = "", onEdit, onRemove, reloadTrigger }:
           marginBottom: '32px'
         }}>
           {filteredVideos.map((video) => (
-            <div key={video.id} style={{
+            <div key={video.id} className="video-card" style={{
               backgroundColor: 'var(--surface-primary)',
               borderRadius: '16px',
               border: '1px solid var(--border-color)',
               overflow: 'hidden',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative'
             }}>
               {/* Thumbnail Area */}
               <div style={{
-                height: '180px',
+                height: '190px',
                 backgroundColor: 'var(--surface-secondary)',
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                overflow: 'hidden'
               }}>
-                {video.video && (
+                {video.video ? (
                   <video 
                     src={video.video} 
-                    style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} 
+                    style={{ 
+                      position: 'absolute', 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover', 
+                      opacity: 0.6,
+                      transition: 'transform 0.5s ease'
+                    }} 
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     controls={false}
                     muted
                   />
+                ) : (
+                  <div style={{ 
+                    width: '100%', height: '100%', 
+                    background: 'linear-gradient(45deg, var(--surface-primary), var(--surface-secondary))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '10px', letterSpacing: '4px', opacity: 0.3 }}>PREVIEW</span>
+                  </div>
                 )}
-                <span style={{ color: 'var(--text-secondary)', fontSize: '12px', letterSpacing: '2px', fontWeight: 600, zIndex: 10 }}>
-                  VIDEO PREVIEW
-                </span>
+                
+                <div style={{
+                  position: 'absolute',
+                  top: '12px',
+                  left: '12px',
+                  zIndex: 10
+                }}>
+                   <span style={{ 
+                     fontSize: '10px', 
+                     backgroundColor: 'rgba(255,255,255,0.1)', 
+                     backdropFilter: 'blur(8px)',
+                     padding: '4px 10px', 
+                     borderRadius: '20px', 
+                     color: '#fff',
+                     fontWeight: 600,
+                     letterSpacing: '0.5px'
+                   }}>
+                    {video.Select_category}
+                  </span>
+                </div>
+
                 <div style={{
                   position: 'absolute',
                   bottom: '12px',
                   right: '12px',
-                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  backgroundColor: 'rgba(0,0,0,0.8)',
+                  backdropFilter: 'blur(4px)',
                   color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
                   fontSize: '11px',
                   fontWeight: 600,
-                  zIndex: 10
+                  zIndex: 10,
+                  border: '1px solid rgba(255,255,255,0.1)'
                 }}>
                   {video.Time || '0:00'}
                 </div>
               </div>
 
               {/* Content Area */}
-              <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {video.Title || 'Untitiled'}
-                  </h3>
-                  <span style={{ fontSize: '10px', backgroundColor: 'var(--surface-secondary)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>
-                    {video.Select_category}
-                  </span>
+              <div style={{ padding: '24px' }}>
+                <h3 style={{ 
+                  margin: '0 0 8px 0', 
+                  fontSize: '16px', 
+                  fontWeight: 700, 
+                  color: 'var(--text-primary)',
+                  lineHeight: '1.4',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  minHeight: '44px'
+                }}>
+                  {video.Title || 'Untitled Session'}
+                </h3>
+               
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontSize: '13px', 
+                  color: 'var(--text-secondary)',
+                  marginBottom: '24px'
+                }}>
+                  <span>{video.created_at ? new Date(video.created_at).toLocaleDateString() : 'N/A'}</span>
+                  <span style={{ color: 'var(--border-color)' }}>•</span>
+                  <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{video.Points || 0} pts</span>
                 </div>
-                <p style={{ margin: '0 0 20px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  {video.created_at ? new Date(video.created_at).toLocaleDateString() : 'N/A'} • {video.Points || 0} pts
-                </p>
 
                 {/* Action Buttons */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <button 
                     onClick={() => onEdit && onEdit(video)}
                     style={{
-                      padding: '10px',
+                      padding: '12px',
                       backgroundColor: 'transparent',
-                      border: '1px solid var(--text-secondary)',
-                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
                       color: 'var(--text-primary)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      letterSpacing: '0.5px',
+                      fontSize: '13px',
+                      fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.2s',
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--surface-secondary)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    onMouseOver={(e) => { 
+                      e.currentTarget.style.backgroundColor = 'var(--text-primary)'; 
+                      e.currentTarget.style.color = 'var(--background)';
+                    }}
+                    onMouseOut={(e) => { 
+                      e.currentTarget.style.backgroundColor = 'transparent'; 
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }}
                   >
-                    EDIT
+                    Edit
                   </button>
                   <button 
                     onClick={() => onRemove && onRemove(video)}
                     style={{
-                      padding: '10px',
-                      backgroundColor: 'white',
-                      border: '1px solid white',
-                      borderRadius: '8px',
+                      padding: '12px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                      border: '1px solid rgba(239, 68, 68, 0.1)',
+                      borderRadius: '12px',
                       color: 'var(--danger)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      letterSpacing: '0.5px',
+                      fontSize: '13px',
+                      fontWeight: 600,
                       cursor: 'pointer',
-                      transition: 'opacity 0.2s',
+                      transition: 'all 0.2s',
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
+                    onMouseOver={(e) => { 
+                      e.currentTarget.style.backgroundColor = 'var(--danger)'; 
+                      e.currentTarget.style.color = 'white';
+                      e.currentTarget.style.borderColor = 'var(--danger)';
+                    }}
+                    onMouseOut={(e) => { 
+                      e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.05)'; 
+                      e.currentTarget.style.color = 'var(--danger)';
+                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.1)';
+                    }}
                   >
-                    REMOVE
+                    Remove
                   </button>
                 </div>
               </div>

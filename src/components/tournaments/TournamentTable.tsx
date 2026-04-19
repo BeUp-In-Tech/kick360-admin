@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, MoreHorizontal, ChevronLeft, ChevronRight, Trash2, PauseCircle, Send } from 'lucide-react';
+import { Lock, RefreshCw, MoreHorizontal, ChevronLeft, ChevronRight, Trash2, PauseCircle, Send, Users } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
+import { TournamentParticipantsModal } from './TournamentParticipantsModal';
 
 const MOCK_TOURNAMENTS = [
   { id: 1, name: 'Spring Cup 2025', status: 'ACTIVE', participants: 256, start: 'Mar 1, 2025', end: 'Mar 31, 2025' },
@@ -20,6 +21,8 @@ export function TournamentTable({ searchQuery = "", onEdit, reloadTrigger }: { s
   const [prevUrl, setPrevUrl] = useState<string | null>(null);
 
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [selectedParticipantsTournament, setSelectedParticipantsTournament] = useState<any | null>(null);
+  const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
 
   const getRelativeUrl = (fullUrl: string | null) => {
     if (!fullUrl) return null;
@@ -184,9 +187,6 @@ export function TournamentTable({ searchQuery = "", onEdit, reloadTrigger }: { s
                          <span style={{ fontSize: '12px', fontWeight: 600 }}>EDIT</span>
                        </button>
                     )}
-                    <button style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }} title="Refresh Participants">
-                      <RefreshCw size={16} />
-                    </button>
                     <div style={{ position: 'relative' }}>
                       <button 
                         onClick={(e) => toggleActionMenu(e, item.id)}
@@ -221,16 +221,27 @@ export function TournamentTable({ searchQuery = "", onEdit, reloadTrigger }: { s
                               icon={<Send size={16} />} 
                               label="Publish" 
                               color="var(--success)" 
-                              onClick={() => handleAction(item.id, 'publish', 'PUT')} 
+                              onClick={() => handleAction(item.id, 'publish', 'PATCH')} 
                             />
                           ) : (
                             <ActionButton 
                               icon={<PauseCircle size={16} />} 
                               label="Pause" 
                               color="var(--warning)" 
-                              onClick={() => handleAction(item.id, 'pause', 'PUT')} 
+                              onClick={() => handleAction(item.id, 'pause', 'PATCH')} 
                             />
                           )}
+                          <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }} />
+                          <ActionButton 
+                            icon={<Users size={16} />} 
+                            label="View Participants" 
+                            color="var(--accent-primary)" 
+                            onClick={() => {
+                              setSelectedParticipantsTournament(item);
+                              setIsParticipantsModalOpen(true);
+                              setOpenActionId(null);
+                            }} 
+                          />
                           <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }} />
                           <ActionButton 
                             icon={<Trash2 size={16} />} 
@@ -302,6 +313,12 @@ export function TournamentTable({ searchQuery = "", onEdit, reloadTrigger }: { s
           </button>
         </div>
       </div>
+
+      <TournamentParticipantsModal 
+        isOpen={isParticipantsModalOpen}
+        onClose={() => setIsParticipantsModalOpen(false)}
+        tournament={selectedParticipantsTournament}
+      />
     </div>
   );
 }

@@ -85,6 +85,24 @@ export function EditVideoModal({ isOpen, onClose, videoData, onSuccess }: EditVi
     }
   };
 
+  const handlePublish = async () => {
+    setIsSubmitting(true);
+    try {
+      await fetchApi(`/api/admin/videos/${videoData.id}/publish/`, {
+        method: 'PATCH',
+        data: {}
+      });
+      alert('Video published successfully!');
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (e) {
+      console.error("Failed to publish video", e);
+      alert(`Failed to publish video: ${e}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!formData.Title || !formData.Select_category) {
       alert("Category and Title are required.");
@@ -445,6 +463,11 @@ export function EditVideoModal({ isOpen, onClose, videoData, onSuccess }: EditVi
           <button onClick={onClose} disabled={isSubmitting} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
+          {!videoData.is_pulished && (
+            <button onClick={handlePublish} disabled={isSubmitting} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'var(--success)', border: 'none', color: '#ffffff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: isSubmitting ? 0.7 : 1 }}>
+              {isSubmitting ? 'Processing...' : 'Publish Video'}
+            </button>
+          )}
           <button onClick={handleSubmit} disabled={isSubmitting} style={{ flex: 1, padding: '14px', borderRadius: '8px', backgroundColor: 'var(--text-primary)', border: 'none', color: 'var(--background)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: isSubmitting ? 0.7 : 1 }}>
             {isSubmitting ? 'Updating...' : 'Update Video'}
           </button>

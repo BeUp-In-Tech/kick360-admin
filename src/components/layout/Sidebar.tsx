@@ -9,6 +9,7 @@ import {
   Trophy,
   PlaySquare,
   BarChart2,
+  Bell,
   LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";

@@ -24,18 +24,32 @@ export function AccessCodeTable({ onManageCode, searchQuery = "" }: { onManageCo
   const loadCodes = async (url: string = "/api/admin/access-codes/") => {
     setIsLoading(true);
     try {
-      const response = await fetchApi(url);
+      // Append search query if present
+      let fetchUrl = url;
+      if (searchQuery && url === "/api/admin/access-codes/") {
+        fetchUrl += `?search=${encodeURIComponent(searchQuery)}`;
+      }
+
+      const response = await fetchApi(fetchUrl);
       if (response && response.results) {
         // Sort results so 'Consumed' codes are at the top
         const sortedResults = [...response.results].sort((a, b) => {
           if (a.is_consumed && !b.is_consumed) return -1;
           if (!a.is_consumed && b.is_consumed) return 1;
-          return 0; // Maintain original order for others
+          return 0; 
         });
         setCodes(sortedResults);
         setTotalCodes(response.count || 0);
         setNextUrl(getRelativeUrl(response.next));
         setPrevUrl(getRelativeUrl(response.previous));
+      } else if (Array.isArray(response)) {
+         // Sort results so 'Consumed' codes are at the top
+         const sortedResults = [...response].sort((a, b) => {
+          if (a.is_consumed && !b.is_consumed) return -1;
+          if (!a.is_consumed && b.is_consumed) return 1;
+          return 0; 
+        });
+        setCodes(sortedResults);
       }
     } catch (error) {
       console.error("Failed to load codes:", error);
@@ -45,17 +59,13 @@ export function AccessCodeTable({ onManageCode, searchQuery = "" }: { onManageCo
   };
 
   useEffect(() => {
-    loadCodes();
-  }, []);
+    const timer = setTimeout(() => {
+      loadCodes();
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const filteredCodes = React.useMemo(() => {
-    if (!searchQuery) return codes;
-    return codes.filter(code => 
-      (code.code && code.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (code.assigned_to && code.assigned_to.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (code.company && code.company.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }, [codes, searchQuery]);
+  const filteredCodes = codes; // We handle filtering via API now
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -89,6 +99,7 @@ export function AccessCodeTable({ onManageCode, searchQuery = "" }: { onManageCo
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>CODE</th>
+              <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>PACKAGE</th>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>ASSIGNED TO</th>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>STATUS</th>
               <th style={{ padding: '20px 24px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '1px' }}>EXPIRY</th>
@@ -98,11 +109,11 @@ export function AccessCodeTable({ onManageCode, searchQuery = "" }: { onManageCo
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={5} style={{ padding: '24px', textAlign: 'center' }}>Loading...</td>
+                <td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}>Loading...</td>
               </tr>
             ) : filteredCodes.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '24px', textAlign: 'center' }}>No access codes found.</td>
+                <td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}>No access codes found.</td>
               </tr>
             ) : (
               filteredCodes.map((item) => (
@@ -125,6 +136,19 @@ export function AccessCodeTable({ onManageCode, searchQuery = "" }: { onManageCo
                         <Copy size={14} />
                       </button>
                     </div>
+                  </td>
+                  <td style={{ padding: '0 24px' }}>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      fontWeight: 600, 
+                      color: 'var(--accent-primary)', 
+                      backgroundColor: 'rgba(245, 158, 11, 0.05)', 
+                      padding: '4px 8px', 
+                      borderRadius: '4px', 
+                      textTransform: 'uppercase' 
+                    }}>
+                      {item.category || 'Basic'}
+                    </span>
                   </td>
                   <td style={{ padding: '0 24px', fontSize: '14px', color: !item.user_name ? 'var(--text-secondary)' : 'var(--text-primary)', fontWeight: !item.user_name ? 400 : 500 }}>
                     {item.user_name || 'Unassigned'}

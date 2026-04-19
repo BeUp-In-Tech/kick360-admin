@@ -17,20 +17,15 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }
     description: "",
     start_date: "",
     end_date: "",
+    category: "basic",
     prize_money: "",
-    product_purchase_link: "",
     is_free: true,
     is_active: false
   });
   
-  const [isCustomLink, setIsCustomLink] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const predefinedLinks = [
-    "https://kick-360.com/products/kick-ball",
-    "https://kick-360.com/products/pro-grip-socks",
-    "https://kick-360.com/products/kids-pro-grip-socks"
-  ];
+
 
   useEffect(() => {
     if (isOpen) {
@@ -40,29 +35,22 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }
           description: tournament.description || "",
           start_date: tournament.start_date ? tournament.start_date.substring(0, 10) : "",
           end_date: tournament.end_date ? tournament.end_date.substring(0, 10) : "",
+          category: tournament.category || "basic",
           prize_money: tournament.prize_money || "",
-          product_purchase_link: tournament.product_purchase_link || "",
           is_free: tournament.is_free !== undefined ? tournament.is_free : true,
           is_active: tournament.is_active || false
         });
-        
-        if (tournament.product_purchase_link && !predefinedLinks.includes(tournament.product_purchase_link)) {
-          setIsCustomLink(true);
-        } else {
-          setIsCustomLink(false);
-        }
       } else {
         setFormData({
           title: "",
           description: "",
           start_date: "",
           end_date: "",
+          category: "basic",
           prize_money: "",
-          product_purchase_link: "",
           is_free: true,
           is_active: false
         });
-        setIsCustomLink(false);
       }
     }
   }, [isOpen, tournament]);
@@ -77,16 +65,7 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }
     }));
   };
 
-  const handleLinkSelect = (e: any) => {
-    const value = e.target.value;
-    if (value === "custom") {
-      setIsCustomLink(true);
-      setFormData(prev => ({ ...prev, product_purchase_link: "" }));
-    } else {
-      setIsCustomLink(false);
-      setFormData(prev => ({ ...prev, product_purchase_link: value }));
-    }
-  };
+
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -138,9 +117,9 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }
       if (tournamentId) {
         try {
           if (formData.is_active) {
-            await fetchApi(`/api/admin/tournaments/${tournamentId}/publish/`, { method: 'PUT', data: {} });
+            await fetchApi(`/api/admin/tournaments/${tournamentId}/publish/`, { method: 'PATCH', data: {} });
           } else {
-            await fetchApi(`/api/admin/tournaments/${tournamentId}/pause/`, { method: 'PUT', data: {} });
+            await fetchApi(`/api/admin/tournaments/${tournamentId}/pause/`, { method: 'PATCH', data: {} });
           }
         } catch (e) {
              console.error("Failed to automatically update tournament status", e);
@@ -194,29 +173,60 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }
 
         <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-              Tournament Title
-            </label>
-            <input 
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              type="text" 
-              placeholder="Enter tournament title..." 
-              style={{
-                width: '100%',
-                backgroundColor: 'var(--surface-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '14px 16px',
-                color: 'var(--text-primary)',
-                outline: 'none'
-              }}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) 2fr', gap: '24px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                Category
+              </label>
+              <select 
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  appearance: 'none',
+                  backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 16px top 50%',
+                  backgroundSize: '10px auto',
+                }}
+              >
+                <option value="basic">Basic</option>
+                <option value="weekly">Weekly</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                Tournament Title
+              </label>
+              <input 
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                type="text" 
+                placeholder="Enter tournament title..." 
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              />
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                 Prize Pool
@@ -237,52 +247,6 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, tournament }
                   outline: 'none'
                 }}
               />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                Product Purchase Link
-              </label>
-              
-              <select 
-                value={isCustomLink ? "custom" : formData.product_purchase_link}
-                onChange={handleLinkSelect}
-                style={{
-                  width: '100%',
-                  backgroundColor: 'var(--surface-primary)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  padding: '14px 16px',
-                  color: 'var(--text-primary)',
-                  marginBottom: isCustomLink ? '8px' : '0',
-                  outline: 'none'
-                }}
-              >
-                <option value="">-- Select Product Link --</option>
-                {predefinedLinks.map(link => (
-                  <option key={link} value={link}>{link.replace('https://kick-360.com/products/', '')}</option>
-                ))}
-                <option value="custom">Custom Link (Type Manually)</option>
-              </select>
-
-              {isCustomLink && (
-                <input 
-                  name="product_purchase_link"
-                  value={formData.product_purchase_link}
-                  onChange={handleChange}
-                  type="text" 
-                  placeholder="https://..." 
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'var(--surface-primary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '14px 16px',
-                    color: 'var(--text-primary)',
-                    outline: 'none'
-                  }}
-                />
-              )}
             </div>
           </div>
 
