@@ -86,7 +86,21 @@ export function VideoGrid({ searchQuery = "", onEdit, onRemove, reloadTrigger }:
                 justifyContent: 'center',
                 overflow: 'hidden'
               }}>
-                {video.video ? (
+                {video.thumbnail ? (
+                  <img 
+                    src={video.thumbnail} 
+                    alt={video.Title}
+                    style={{ 
+                      position: 'absolute', 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover',
+                      transition: 'transform 0.5s ease'
+                    }} 
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
+                ) : video.video ? (
                   <video 
                     src={video.video} 
                     style={{ 

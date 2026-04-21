@@ -43,6 +43,14 @@ export function ManagePackagesModal({ isOpen, onClose }: ManagePackagesModalProp
 
   const handleAddPackage = async () => {
     if (!newPackage.product_purchase_link) return;
+
+    // Check if category already exists
+    const exists = packages.some(pkg => pkg.category.toLowerCase() === newPackage.category.toLowerCase());
+    if (exists) {
+      alert("you cant create the same category package, please remove the exiscting one and create new");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await fetchApi('/api/admin/access-codes/packages/', {

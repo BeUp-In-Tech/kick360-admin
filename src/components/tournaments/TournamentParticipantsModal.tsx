@@ -122,12 +122,43 @@ export function TournamentParticipantsModal({ isOpen, onClose, tournament }: Tou
                   }}>
                     <User size={20} />
                   </div>
-                  <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
                       {p.user_name || p.name || 'Anonymous User'}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                       Joined on {new Date(p.created_at || Date.now()).toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  {/* Stats Section */}
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '12px', 
+                    fontSize: '11px',
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>RANK</div>
+                      <div style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>#{p.rank || 0}</div>
+                    </div>
+                    <div style={{ width: '1px', backgroundColor: 'var(--border-color)', opacity: 0.3 }}></div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>SCORE</div>
+                      <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{p.score || 0}</div>
+                    </div>
+                    <div style={{ width: '1px', backgroundColor: 'var(--border-color)', opacity: 0.3 }}></div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>KICKS</div>
+                      <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{p.total_kicks || 0}</div>
+                    </div>
+                    <div style={{ width: '1px', backgroundColor: 'var(--border-color)', opacity: 0.3 }}></div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>HOURS</div>
+                      <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{p.hours_played?.toFixed(1) || '0.0'}</div>
                     </div>
                   </div>
                 </div>
